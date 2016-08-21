@@ -2,32 +2,31 @@ extern crate futures;
 extern crate tokio;
 extern crate tokio_line as line;
 extern crate env_logger;
+extern crate mio;
 
 use futures::Future;
+use mio::timer::Builder as MioTimerBuilder;
+use std::borrow::Cow;
+use std::io;
+use std::time::Duration;
 use tokio::Service;
+use tokio::io::{Transport, Readiness};
+use tokio::proto::pipeline;
+use tokio::util::timer::{Timer, Timeout};
+
 
 pub fn main() {
     env_logger::init().unwrap();
 
     let addr = "127.0.0.1:12345".parse().unwrap();
 
-    line::Server::new()
+    let server = line::Server::new()
         .bind(addr)
         .serve(tokio::simple_service(|msg| {
             println!("GOT: {:?}", msg);
             Ok(msg)
         }))
         .unwrap();
-
-
-    let client = line::Client::new()
-        .connect(&addr)
-        .unwrap();
-
-    let resp = client.call("Hello".to_string());
-    println!("RESPONSE: {:?}", await(resp));
-
-    drop(client);
 }
 
 // Why this isn't in futures-rs, I do not know...
